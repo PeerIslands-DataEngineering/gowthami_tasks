@@ -1,0 +1,73 @@
+PROGRAM 1:-
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import desc, avg
+
+spark = SparkSession.builder.appName("parquet file").getOrCreate()
+
+df = spark.read.parquet("/content/titanic.parquet")
+df.printSchema()
+
+df = df.groupBy("Pclass", "Sex").agg(avg("Survived"))
+
+df.orderBy("Pclass", desc(avg("Survived"))).show()
+
+OUTPUT:-
++------+------+-------------------+
+|Pclass|   Sex|      avg(Survived)|
++------+------+-------------------+
+|     1|female| 0.9680851063829787|
+|     1|  male|0.36885245901639346|
+|     2|female| 0.9210526315789473|
+|     2|  male| 0.1574074074074074|
+|     3|female|                0.5|
+|     3|  male|0.13544668587896252|
++------+------+-------------------+
+
+
+
+
+PROGRAM 2:-
+
+from pyspark.sql.functions import desc, avg
+
+df = spark.read.parquet("/content/titanic.parquet")
+# df.show(20)
+df = df.dropna(subset=["Fare", "Age"])
+# df.show(20)
+df = df.groupBy("Embarked").agg(avg("Fare"), avg("Age"))
+
+df = df.orderBy(desc(avg("Fare")))
+df.show()
+
+OUTPUT:-
++--------+------------------+------------------+
+|Embarked|         avg(Fare)|          avg(Age)|
++--------+------------------+------------------+
+|    NULL|              80.0|              50.0|
+|       C| 68.29676692307693| 30.81476923076923|
+|       S|27.476284476534268| 29.44539711191336|
+|       Q|         18.265775|28.089285714285715|
++--------+------------------+------------------+
+
+
+PROGRAM 3:-
+from pyspark.sql.functions import col
+
+df = spark.read.parquet("/content/titanic.parquet")
+
+df = df.filter(col("Survived")==1)
+
+df = df.orderBy(desc("Fare"))
+df.select("Name", "Pclass", "Sex", "Fare", "Cabin").show(5)
+
+OUTPUT:-
++--------------------+------+------+--------+-----------+
+|                Name|Pclass|   Sex|    Fare|      Cabin|
++--------------------+------+------+--------+-----------+
+|    Ward, Miss. Anna|     1|female|512.3292|       NULL|
+|Cardeza, Mr. Thom...|     1|  male|512.3292|B51 B53 B55|
+|Lesurer, Mr. Gust...|     1|  male|512.3292|       B101|
+|Fortune, Miss. Ma...|     1|female|   263.0|C23 C25 C27|
+|Fortune, Miss. Al...|     1|female|   263.0|C23 C25 C27|
++--------------------+------+------+--------+-----------+
